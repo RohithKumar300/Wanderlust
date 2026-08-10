@@ -17,7 +17,9 @@ module.exports.showListing = async (req, res) => {
     const listing = await Listing.findById(id).populate({ path: "reviews", populate: { path: "author", }, }).populate("owner");
     if (!listing) {
         req.flash("error", "Listing you requested for does not exist!");
-        res.redirect("/listings");
+        req.session.save(() => {
+            res.redirect("/listings");
+        });
     } else {
         console.log(listing);
         res.render("listings/show.ejs", { listing });
@@ -44,7 +46,9 @@ module.exports.createListing = async (req, res, next) => {
     let savedListing = await newListing.save();
     console.log(savedListing);
     req.flash("success", "New Listing Created!");
-    res.redirect("/listings");
+    req.session.save(() => {
+        res.redirect("/listings");
+    });
 };
 
 module.exports.renderEditForm = async (req, res) => {
@@ -65,14 +69,16 @@ module.exports.updateListing = async (req, res) => {
     let listing = await Listing.findByIdAndUpdate(id, { ...req.body.listing });
 
     if (typeof req.file !== "undefined") {
-        let url = req.file.path;
-        let filename = req.file.filename;
+        let url = req.file.url
+        let filename = req.file.public_id;
         listing.image = { url, filename };
         await listing.save();
     }
 
     req.flash("success", "Listing Updated!");
-    res.redirect(`/listings/${id}`);
+    req.session.save(() => {
+        res.redirect(`/listings/${id}`);
+    });
 };
 
 module.exports.destroyListing = async (req, res) => {
@@ -80,5 +86,19 @@ module.exports.destroyListing = async (req, res) => {
     let deletedListing = await Listing.findByIdAndDelete(id);
     console.log(deletedListing);
     req.flash("success", "Listing Deleted!");
-    res.redirect("/listings");
+    req.session.save(() => {
+        res.redirect("/listings");
+    });
+};
+
+module.exports.searchListings = async (req, res) => {
+    let searchQuery = req.query.search;
+    let allListings = await Listing.find({location: searchQuery});
+    if(!allListings || allListings.length === 0) {
+        req.flash("error", "No listings found for the searched location!");
+        return req.session.save(() => {
+            res.redirect("/listings");
+        });
+    }
+    res.render("listings/index.ejs", { allListings });
 };
