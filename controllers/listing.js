@@ -100,5 +100,6 @@ module.exports.searchListings = async (req, res) => {
             res.redirect("/listings");
         });
     }
+    req.flash("success", "Listings found for the searched location!");
     res.render("listings/index.ejs", { allListings });
 };
